@@ -2,147 +2,151 @@ package com.example.mathpracticeapp;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.google.android.material.button.MaterialButton;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
+import java.util.Random;
 
 public class QuestionActivity extends AppCompatActivity {
 
-    private TextView questionText, scoreText, answerFeedbackText;
-    private MaterialButton option1Button, option2Button, option3Button, option4Button;
-    private MaterialButton exitButton, signOutButton;
+    private TextView userNameText, questionText, resultPrompt;
+    private Button option1, option2, option3, option4, signOutButton;
 
-    private String difficulty;
-    private int currentQuestionIndex = 0;
-    private int score = 0;
+    private String userName;
+    private DifficultyLevel difficultyLevel;
     private Question currentQuestion;
 
-    private Handler handler = new Handler();
+    private Random random = new Random();
+
+    private int score = 0;
+    private int questionCount = 0;
+    private static final int MAX_QUESTIONS = 20;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_question);
 
-        difficulty = getIntent().getStringExtra("difficulty");
-
-        // Link UI
+        userNameText = findViewById(R.id.userNameText);
         questionText = findViewById(R.id.questionText);
-        scoreText = findViewById(R.id.scoreText);
-        answerFeedbackText = findViewById(R.id.answerFeedbackText);
+        resultPrompt = findViewById(R.id.resultPrompt);
 
-        option1Button = findViewById(R.id.option1Button);
-        option2Button = findViewById(R.id.option2Button);
-        option3Button = findViewById(R.id.option3Button);
-        option4Button = findViewById(R.id.option4Button);
-
-        exitButton = findViewById(R.id.exitButton);
+        option1 = findViewById(R.id.option1);
+        option2 = findViewById(R.id.option2);
+        option3 = findViewById(R.id.option3);
+        option4 = findViewById(R.id.option4);
         signOutButton = findViewById(R.id.signOutButton);
 
-        option1Button.setOnClickListener(v -> checkAnswer(Integer.parseInt(option1Button.getText().toString())));
-        option2Button.setOnClickListener(v -> checkAnswer(Integer.parseInt(option2Button.getText().toString())));
-        option3Button.setOnClickListener(v -> checkAnswer(Integer.parseInt(option3Button.getText().toString())));
-        option4Button.setOnClickListener(v -> checkAnswer(Integer.parseInt(option4Button.getText().toString())));
+        // Get username and difficulty from intent
+        userName = getIntent().getStringExtra("userName");
+        String levelString = getIntent().getStringExtra("LEVEL");
 
-        exitButton.setOnClickListener(v -> finish());
-
-        signOutButton.setOnClickListener(v -> signOut());
-
-        loadNextQuestion();
-    }
-
-    private void checkAnswer(int userAnswer) {
-        disableOptions();
-
-        if (userAnswer == currentQuestion.getAnswer()) {
-            score++;
-            answerFeedbackText.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
-            answerFeedbackText.setText("Correct!");
-        } else {
-            answerFeedbackText.setTextColor(getResources().getColor(android.R.color.holo_red_dark));
-            answerFeedbackText.setText(String.format(Locale.US, "Wrong! Correct: %d", currentQuestion.getAnswer()));
+        try {
+            difficultyLevel = DifficultyLevel.fromString(levelString);
+        } catch (IllegalArgumentException e) {
+            difficultyLevel = DifficultyLevel.EASY; // fallback
         }
 
-        updateScore();
+        userNameText.setText("Hello, " + (userName != null ? userName : "Player"));
 
-        handler.postDelayed(this::loadNextQuestion, 1500);
+        loadNewQuestion();
+
+        View.OnClickListener optionClickListener = v -> {
+            disableOptions();
+
+            Button clickedButton = (Button) v;
+            int selectedAnswer;
+            try {
+                selectedAnswer = Integer.parseInt(clickedButton.getText().toString());
+            } catch (NumberFormatException e) {
+                Toast.makeText(this, "Invalid answer option", Toast.LENGTH_SHORT).show();
+                enableOptions();
+                return;
+            }
+
+            if (selectedAnswer == currentQuestion.getAnswer()) {
+                score++;
+                resultPrompt.setText("Correct! Score: " + score);
+                resultPrompt.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
+            } else {
+                resultPrompt.setText("Incorrect! Correct answer: " + currentQuestion.getAnswer() + "\nScore: " + score);
+                resultPrompt.setTextColor(getResources().getColor(android.R.color.holo_red_dark));
+            }
+
+            clickedButton.postDelayed(() -> {
+                enableOptions();
+                loadNewQuestion();
+            }, 1500);
+        };
+
+        option1.setOnClickListener(optionClickListener);
+        option2.setOnClickListener(optionClickListener);
+        option3.setOnClickListener(optionClickListener);
+        option4.setOnClickListener(optionClickListener);
+
+        signOutButton.setOnClickListener(v -> {
+            GoogleSignInHelper.signOut(this, () -> {
+                Intent intent = new Intent(QuestionActivity.this, MainActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+                finish();
+            });
+        });
     }
 
-    private void loadNextQuestion() {
-        answerFeedbackText.setText(""); // Clear feedback
-        enableOptions();
-
-        currentQuestionIndex++;
-
-        if (currentQuestionIndex > 30) {
-            Toast.makeText(this, "Practice Complete!\nScore: " + score, Toast.LENGTH_LONG).show();
+    private void loadNewQuestion() {
+        if (questionCount >= MAX_QUESTIONS) {
+            Toast.makeText(this, "Quiz Finished! Final Score: " + score, Toast.LENGTH_LONG).show();
             finish();
             return;
         }
 
-        currentQuestion = Question.generate(DifficultyLevel.valueOf(difficulty), currentQuestionIndex);
-        questionText.setText("Q" + currentQuestionIndex + ": " + currentQuestion.getQuestionText());
+        questionCount++;
+        resultPrompt.setText("");
+        currentQuestion = Question.generate(difficultyLevel, random.nextInt(30) + 1);
+        questionText.setText(currentQuestion.getQuestionText());
 
-        // Generate options with 1 correct + 3 random wrong answers
-        List<Integer> options = generateOptions(currentQuestion.getAnswer());
-        Collections.shuffle(options);
-
-        option1Button.setText(String.valueOf(options.get(0)));
-        option2Button.setText(String.valueOf(options.get(1)));
-        option3Button.setText(String.valueOf(options.get(2)));
-        option4Button.setText(String.valueOf(options.get(3)));
-    }
-
-    private List<Integer> generateOptions(int correctAnswer) {
         List<Integer> options = new ArrayList<>();
-        options.add(correctAnswer);
+        options.add(currentQuestion.getAnswer());
 
-        // Add 3 wrong answers close to correct answer
-        int offset = 3;
         while (options.size() < 4) {
-            int wrong = correctAnswer + (int) (Math.random() * offset * 2) - offset;
-            if (wrong != correctAnswer && wrong >= 0 && !options.contains(wrong)) {
-                options.add(wrong);
+            int wrongAnswer = generateWrongAnswer(currentQuestion.getAnswer());
+            if (!options.contains(wrongAnswer)) {
+                options.add(wrongAnswer);
             }
         }
-        return options;
+
+        Collections.shuffle(options);
+
+        option1.setText(String.valueOf(options.get(0)));
+        option2.setText(String.valueOf(options.get(1)));
+        option3.setText(String.valueOf(options.get(2)));
+        option4.setText(String.valueOf(options.get(3)));
     }
 
-    private void updateScore() {
-        scoreText.setText("Score: " + score);
+    private int generateWrongAnswer(int correctAnswer) {
+        int offset = random.nextInt(10) + 1;
+        return random.nextBoolean() ? correctAnswer + offset : Math.max(0, correctAnswer - offset);
     }
 
     private void disableOptions() {
-        option1Button.setEnabled(false);
-        option2Button.setEnabled(false);
-        option3Button.setEnabled(false);
-        option4Button.setEnabled(false);
+        option1.setEnabled(false);
+        option2.setEnabled(false);
+        option3.setEnabled(false);
+        option4.setEnabled(false);
     }
 
     private void enableOptions() {
-        option1Button.setEnabled(true);
-        option2Button.setEnabled(true);
-        option3Button.setEnabled(true);
-        option4Button.setEnabled(true);
-    }
-
-    private void signOut() {
-        // Your sign-out logic here (e.g., FirebaseAuth.getInstance().signOut() or clearing stored user data)
-        Toast.makeText(this, "Signed out successfully!", Toast.LENGTH_SHORT).show();
-        // Navigate back to login or main screen
-        Intent intent = new Intent(this, LoginActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(intent);
-        finish();
+        option1.setEnabled(true);
+        option2.setEnabled(true);
+        option3.setEnabled(true);
+        option4.setEnabled(true);
     }
 }
