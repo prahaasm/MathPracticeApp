@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "502076306830",
+    "project_id": "mathpracticeapp-c2ff8",
+    "storage_bucket": "mathpracticeapp-c2ff8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:502076306830:android:b5d08d6cd75e8c558360df",
+        "android_client_info": {
+          "package_name": "com.example.mathpracticeapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "502076306830-tlgp2jchgvidofnius7mpkk78fbb4odk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.mathpracticeapp",
+            "certificate_hash": "113da251dec45251181e3f3fb4ba279850f1eeed"
+          }
+        },
+        {
+          "client_id": "502076306830-vhcqrp8si7uggumfdm860b2toksvq7k8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCUmCLrx-R6umJ3IpvDouIAavzHwA0c7ng"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "502076306830-vhcqrp8si7uggumfdm860b2toksvq7k8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

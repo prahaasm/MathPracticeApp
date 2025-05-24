@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">MathPracticeApp</string>
+    <string name="default_web_client_id">502076306830-vhcqrp8si7uggumfdm860b2toksvq7k8.apps.googleusercontent.com</string>
+    <string name="title_activity_practice">PracticeActivity</string>
+    <string name="title_activity_question">QuestionActivity</string>
+
+</resources>
