@@ -1,6 +1,9 @@
 package com.example.mathpracticeapp;
 
+import static android.content.ContentValues.TAG;
+
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.*;
@@ -40,12 +43,9 @@ public class QuestionActivity extends AppCompatActivity {
         optionD = findViewById(R.id.optionD);
 
         selectedLevel = DifficultyLevel.fromString(getIntent().getStringExtra("LEVEL"));
-        currentUser = FirebaseAuth.getInstance().getCurrentUser();
 
-        if (currentUser != null) {
-            userName = currentUser.getDisplayName();
-            userEmail = currentUser.getEmail();
-        }
+        userName = getIntent().getStringExtra("userName");
+        userEmail = getIntent().getStringExtra("userEmail");
 
         loadNextQuestion();
 
@@ -94,9 +94,11 @@ public class QuestionActivity extends AppCompatActivity {
 
     private void showSummaryDialog() {
         double percentage = (correctAnswers * 100.0) / totalQuestions;
-
+        Log.d(TAG, "UserName:"+userName+" userEmail"+userEmail);
         if (userEmail != null && userName != null) {
+            Log.d(TAG, "Updating userStats");
             UserStatsManager.updateUserStats(userName, userEmail, selectedLevel.name(), correctAnswers, totalQuestions);
+            Log.d(TAG, "Updating userStats successful");
         }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);

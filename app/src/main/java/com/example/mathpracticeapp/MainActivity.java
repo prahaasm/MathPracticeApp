@@ -1,7 +1,10 @@
 package com.example.mathpracticeapp;
 
+import static android.content.ContentValues.TAG;
+
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
@@ -17,6 +20,10 @@ import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.FirebaseApp;
+import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -27,9 +34,8 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        FirebaseApp.initializeApp(this);
-
         super.onCreate(savedInstanceState);
+        FirebaseApp.initializeApp(this);
         setContentView(R.layout.activity_main);
 
         btnPractice = findViewById(R.id.btnPractice);
@@ -93,9 +99,17 @@ public class MainActivity extends AppCompatActivity {
                 btnLeaderboard.setVisibility(View.VISIBLE);
                 btnSignIn.setVisibility(View.GONE);
 
+                // Start PracticeActivity and pass user info
+                Intent intent = new Intent(MainActivity.this, PracticeActivity.class);
+                intent.putExtra("userName", account.getDisplayName());
+                intent.putExtra("userEmail", account.getEmail());
+                startActivity(intent);
+                finish();  // Optional: finish MainActivity so user can't come back by back button
+
             } catch (ApiException e) {
                 Toast.makeText(this, "Sign in failed: " + e.getStatusCode(), Toast.LENGTH_SHORT).show();
             }
         }
     }
+
 }

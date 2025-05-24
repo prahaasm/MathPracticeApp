@@ -11,6 +11,7 @@ public class PracticeActivity extends AppCompatActivity {
 
     private Button easyBtn, mediumBtn, hardBtn;
     private String userName;
+    private String userEmail;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,6 +25,7 @@ public class PracticeActivity extends AppCompatActivity {
 
         // Get username from intent extras
         userName = getIntent().getStringExtra("userName");
+        userEmail = getIntent().getStringExtra("userEmail");
 
         easyBtn.setOnClickListener(v -> startQuestionActivity("Easy"));
         mediumBtn.setOnClickListener(v -> startQuestionActivity("Medium"));
