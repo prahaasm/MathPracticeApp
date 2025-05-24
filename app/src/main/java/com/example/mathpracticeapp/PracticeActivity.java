@@ -15,6 +15,7 @@ public class PracticeActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         setContentView(R.layout.activity_practice);
 
         easyBtn = findViewById(R.id.easyBtn);
@@ -28,6 +29,13 @@ public class PracticeActivity extends AppCompatActivity {
         mediumBtn.setOnClickListener(v -> startQuestionActivity("Medium"));
         hardBtn.setOnClickListener(v -> startQuestionActivity("Hard"));
     }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        finish();  // Close this activity and return to MainActivity
+        return true;
+    }
+
 
     private void startQuestionActivity(String level) {
         Intent intent = new Intent(PracticeActivity.this, QuestionActivity.class);

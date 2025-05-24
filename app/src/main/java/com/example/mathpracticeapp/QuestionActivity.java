@@ -1,152 +1,169 @@
 package com.example.mathpracticeapp;
 
-import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
-import android.widget.Button;
-import android.widget.TextView;
-import android.widget.Toast;
-
+import android.view.Menu;
+import android.view.MenuItem;
+import android.widget.*;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Random;
 
 public class QuestionActivity extends AppCompatActivity {
 
-    private TextView userNameText, questionText, resultPrompt;
-    private Button option1, option2, option3, option4, signOutButton;
+    private TextView questionTextView, scoreTextView;
+    private Button optionA, optionB, optionC, optionD;
 
-    private String userName;
-    private DifficultyLevel difficultyLevel;
-    private Question currentQuestion;
+    private DifficultyLevel selectedLevel;
+    private int currentQuestionIndex = 1;
+    private int correctAnswers = 0;
+    private int totalQuestions = 30;
 
-    private Random random = new Random();
-
-    private int score = 0;
-    private int questionCount = 0;
-    private static final int MAX_QUESTIONS = 20;
+    private int correctAnswer;
+    private FirebaseUser currentUser;
+    private String userName, userEmail;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_question);
 
-        userNameText = findViewById(R.id.userNameText);
-        questionText = findViewById(R.id.questionText);
-        resultPrompt = findViewById(R.id.resultPrompt);
+        questionTextView = findViewById(R.id.questionTextView);
+        scoreTextView = findViewById(R.id.scoreTextView);
+        optionA = findViewById(R.id.optionA);
+        optionB = findViewById(R.id.optionB);
+        optionC = findViewById(R.id.optionC);
+        optionD = findViewById(R.id.optionD);
 
-        option1 = findViewById(R.id.option1);
-        option2 = findViewById(R.id.option2);
-        option3 = findViewById(R.id.option3);
-        option4 = findViewById(R.id.option4);
-        signOutButton = findViewById(R.id.signOutButton);
+        selectedLevel = DifficultyLevel.fromString(getIntent().getStringExtra("LEVEL"));
+        currentUser = FirebaseAuth.getInstance().getCurrentUser();
 
-        // Get username and difficulty from intent
-        userName = getIntent().getStringExtra("userName");
-        String levelString = getIntent().getStringExtra("LEVEL");
-
-        try {
-            difficultyLevel = DifficultyLevel.fromString(levelString);
-        } catch (IllegalArgumentException e) {
-            difficultyLevel = DifficultyLevel.EASY; // fallback
+        if (currentUser != null) {
+            userName = currentUser.getDisplayName();
+            userEmail = currentUser.getEmail();
         }
 
-        userNameText.setText("Hello, " + (userName != null ? userName : "Player"));
+        loadNextQuestion();
 
-        loadNewQuestion();
-
-        View.OnClickListener optionClickListener = v -> {
-            disableOptions();
-
-            Button clickedButton = (Button) v;
-            int selectedAnswer;
-            try {
-                selectedAnswer = Integer.parseInt(clickedButton.getText().toString());
-            } catch (NumberFormatException e) {
-                Toast.makeText(this, "Invalid answer option", Toast.LENGTH_SHORT).show();
-                enableOptions();
-                return;
-            }
-
-            if (selectedAnswer == currentQuestion.getAnswer()) {
-                score++;
-                resultPrompt.setText("Correct! Score: " + score);
-                resultPrompt.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
-            } else {
-                resultPrompt.setText("Incorrect! Correct answer: " + currentQuestion.getAnswer() + "\nScore: " + score);
-                resultPrompt.setTextColor(getResources().getColor(android.R.color.holo_red_dark));
-            }
-
-            clickedButton.postDelayed(() -> {
-                enableOptions();
-                loadNewQuestion();
-            }, 1500);
-        };
-
-        option1.setOnClickListener(optionClickListener);
-        option2.setOnClickListener(optionClickListener);
-        option3.setOnClickListener(optionClickListener);
-        option4.setOnClickListener(optionClickListener);
-
-        signOutButton.setOnClickListener(v -> {
-            GoogleSignInHelper.signOut(this, () -> {
-                Intent intent = new Intent(QuestionActivity.this, MainActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(intent);
-                finish();
-            });
-        });
+        optionA.setOnClickListener(v -> checkAnswer(Integer.parseInt(optionA.getText().toString())));
+        optionB.setOnClickListener(v -> checkAnswer(Integer.parseInt(optionB.getText().toString())));
+        optionC.setOnClickListener(v -> checkAnswer(Integer.parseInt(optionC.getText().toString())));
+        optionD.setOnClickListener(v -> checkAnswer(Integer.parseInt(optionD.getText().toString())));
     }
 
-    private void loadNewQuestion() {
-        if (questionCount >= MAX_QUESTIONS) {
-            Toast.makeText(this, "Quiz Finished! Final Score: " + score, Toast.LENGTH_LONG).show();
-            finish();
-            return;
-        }
+    private void loadNextQuestion() {
+        QuestionData question = generateQuestion(selectedLevel);
+        questionTextView.setText("Q" + currentQuestionIndex + ": " + question.questionText);
+        correctAnswer = question.correctAnswer;
 
-        questionCount++;
-        resultPrompt.setText("");
-        currentQuestion = Question.generate(difficultyLevel, random.nextInt(30) + 1);
-        questionText.setText(currentQuestion.getQuestionText());
-
-        List<Integer> options = new ArrayList<>();
-        options.add(currentQuestion.getAnswer());
-
+        ArrayList<Integer> options = new ArrayList<>();
+        options.add(correctAnswer);
+        Random random = new Random();
         while (options.size() < 4) {
-            int wrongAnswer = generateWrongAnswer(currentQuestion.getAnswer());
-            if (!options.contains(wrongAnswer)) {
-                options.add(wrongAnswer);
+            int wrong = correctAnswer + random.nextInt(20) - 10;
+            if (wrong != correctAnswer && wrong >= 0 && !options.contains(wrong)) {
+                options.add(wrong);
             }
         }
 
         Collections.shuffle(options);
+        optionA.setText(String.valueOf(options.get(0)));
+        optionB.setText(String.valueOf(options.get(1)));
+        optionC.setText(String.valueOf(options.get(2)));
+        optionD.setText(String.valueOf(options.get(3)));
 
-        option1.setText(String.valueOf(options.get(0)));
-        option2.setText(String.valueOf(options.get(1)));
-        option3.setText(String.valueOf(options.get(2)));
-        option4.setText(String.valueOf(options.get(3)));
+        scoreTextView.setText("Score: " + correctAnswers + "/" + (currentQuestionIndex - 1));
     }
 
-    private int generateWrongAnswer(int correctAnswer) {
-        int offset = random.nextInt(10) + 1;
-        return random.nextBoolean() ? correctAnswer + offset : Math.max(0, correctAnswer - offset);
+    private void checkAnswer(int selectedAnswer) {
+        if (selectedAnswer == correctAnswer) {
+            correctAnswers++;
+        }
+
+        currentQuestionIndex++;
+        if (currentQuestionIndex > totalQuestions) {
+            showSummaryDialog();
+        } else {
+            loadNextQuestion();
+        }
     }
 
-    private void disableOptions() {
-        option1.setEnabled(false);
-        option2.setEnabled(false);
-        option3.setEnabled(false);
-        option4.setEnabled(false);
+    private void showSummaryDialog() {
+        double percentage = (correctAnswers * 100.0) / totalQuestions;
+
+        if (userEmail != null && userName != null) {
+            UserStatsManager.updateUserStats(userName, userEmail, selectedLevel.name(), correctAnswers, totalQuestions);
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Quiz Summary");
+        builder.setMessage("Questions Attempted: " + totalQuestions +
+                "\nCorrect Answers: " + correctAnswers +
+                "\nPercentage: " + String.format("%.2f", percentage) + "%");
+        builder.setPositiveButton("OK", (dialog, which) -> finish());
+        builder.setCancelable(false);
+        builder.show();
     }
 
-    private void enableOptions() {
-        option1.setEnabled(true);
-        option2.setEnabled(true);
-        option3.setEnabled(true);
-        option4.setEnabled(true);
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.question_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.action_exit) {
+            showSummaryDialog();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private QuestionData generateQuestion(DifficultyLevel level) {
+        Random rand = new Random();
+        int a = 0, b = 0, answer = 0;
+        String operator = "+";
+
+        switch (level) {
+            case EASY:
+                a = rand.nextInt(9) + 1;
+                b = rand.nextInt(9) + 1;
+                operator = rand.nextBoolean() ? "+" : "-";
+                break;
+            case MEDIUM:
+                a = rand.nextInt(91) + 10;
+                b = rand.nextInt(91) + 10;
+                operator = rand.nextBoolean() ? "+" : "-";
+                break;
+            case HARD:
+                a = rand.nextInt(291) + 10;
+                b = rand.nextInt(291) + 10;
+                int op = rand.nextInt(3);
+                operator = (op == 0) ? "+" : (op == 1) ? "-" : "*";
+                break;
+        }
+
+        switch (operator) {
+            case "+": answer = a + b; break;
+            case "-": answer = a - b; break;
+            case "*": answer = a * b; break;
+        }
+
+        return new QuestionData(a + " " + operator + " " + b + " = ?", answer);
+    }
+
+    private static class QuestionData {
+        String questionText;
+        int correctAnswer;
+
+        QuestionData(String text, int answer) {
+            this.questionText = text;
+            this.correctAnswer = answer;
+        }
     }
 }

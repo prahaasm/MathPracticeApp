@@ -16,20 +16,24 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.FirebaseApp;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final int RC_SIGN_IN = 1001;
     private GoogleSignInClient mGoogleSignInClient;
-    private Button btnPractice;
+    private Button btnPractice, btnLeaderboard;
     private SignInButton btnSignIn;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        FirebaseApp.initializeApp(this);
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         btnPractice = findViewById(R.id.btnPractice);
+        btnLeaderboard = findViewById(R.id.btnLeaderboard);
         btnSignIn = findViewById(R.id.btnSignIn);
 
         // Configure Google Sign-In
@@ -42,7 +46,9 @@ public class MainActivity extends AppCompatActivity {
         // Check if user is already signed in
         GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
         if (account != null) {
+            // Show buttons
             btnPractice.setVisibility(View.VISIBLE);
+            btnLeaderboard.setVisibility(View.VISIBLE);
             btnSignIn.setVisibility(View.GONE);
         }
 
@@ -51,12 +57,18 @@ public class MainActivity extends AppCompatActivity {
         btnPractice.setOnClickListener(v -> {
             GoogleSignInAccount signedInAccount = GoogleSignIn.getLastSignedInAccount(this);
             if (signedInAccount != null) {
+                // Pass username/email if needed
                 Intent intent = new Intent(MainActivity.this, PracticeActivity.class);
-                intent.putExtra("userName", signedInAccount.getDisplayName()); // pass username
+                intent.putExtra("userName", signedInAccount.getDisplayName());
                 startActivity(intent);
             } else {
                 Toast.makeText(MainActivity.this, "Please sign in first", Toast.LENGTH_SHORT).show();
             }
+        });
+
+        btnLeaderboard.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, LeaderboardActivity.class);
+            startActivity(intent);
         });
     }
 
@@ -75,11 +87,10 @@ public class MainActivity extends AppCompatActivity {
             try {
                 GoogleSignInAccount account = task.getResult(ApiException.class);
 
-                // Signed in successfully
                 Toast.makeText(this, "Signed in as: " + account.getEmail(), Toast.LENGTH_SHORT).show();
 
-                // Show Practice Mode button and hide Sign-In button
                 btnPractice.setVisibility(View.VISIBLE);
+                btnLeaderboard.setVisibility(View.VISIBLE);
                 btnSignIn.setVisibility(View.GONE);
 
             } catch (ApiException e) {
